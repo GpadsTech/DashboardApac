@@ -1,4 +1,4 @@
-import Gauge from './Gauge.jsx'
+import ColumnChart from './ColumnChart'
 import styles from './Dashboard.module.css'
 
 import { useEffect, useState } from 'react'
@@ -53,86 +53,114 @@ function InfoCard({ titulo, valor }) {
 
 function Dashboard({ onFechar }) {
 
-  const [analise, setAnalise] = useState(null)
+  const [analises, setAnalises] = useState([])
 
   useEffect(() => {
 
-    const unsubscribe = onSnapshot(
-      collection(db, 'analises'),
-      (snapshot) => {
+      const unsubscribe = onSnapshot(
+          collection(db, "analises"),
+          (snapshot) => {
 
-        if (snapshot.empty) return
+              const lista = snapshot.docs.map(doc => ({
+                  id: doc.id,
+                  ...doc.data()
+              }));
 
-        const ultimo =
-          snapshot.docs[snapshot.docs.length - 1]
+              lista.sort((a, b) => {
 
-        setAnalise(ultimo.data())
-      }
-    )
+                  const [diaA, mesA, anoA] = a.data.split("/");
+                  const [diaB, mesB, anoB] = b.data.split("/");
 
-    return () => unsubscribe()
+                  const [horaA, minA, segA] = a.horaColeta.split(":");
+                  const [horaB, minB, segB] = b.horaColeta.split(":");
 
-  }, [])
+                  const dataHoraA = new Date(
+                      anoA,
+                      mesA - 1,
+                      diaA,
+                      horaA,
+                      minA,
+                      segA
+                  );
 
-  if (!analise) {
-    return <h2>Carregando...</h2>
+                  const dataHoraB = new Date(
+                      anoB,
+                      mesB - 1,
+                      diaB,
+                      horaB,
+                      minB,
+                      segB
+                  );
+
+                  return dataHoraA - dataHoraB;
+
+              });
+
+              setAnalises(lista.slice(-5));
+
+          }
+      );
+
+      return () => unsubscribe();
+
+  }, []);
+
+  if (analises.length === 0) {
+      return <h2>Carregando...</h2>;
   }
 
+  const analise = analises[analises.length - 1];
+
   const variaveis = [
-    ['ICF', analise.icf, 'texto'],
-    ['Choveu nas Últimas 24h ?', analise.choveuUltimas24h, 'texto'],
-    ['Temperatura do Ar', analise.temperaturaAr, '°C', 0, 50],
-    ['Temperatura da Água', analise.temperaturaAgua, '°C', 0, 50],
-
-    ['pH', analise.ph, 'pH', 0, 14],
-    ['Condutividade', analise.condutividade, 'µS/cm', 0, 5000],
-    ['Cloreto', analise.cloreto, 'mg/L', 0, 500],
-    ['Oxigênio Dissolvido', analise.oxigenioDissolvido, 'mg/L', 0, 20],
-    ['DBO', analise.dbo, 'mg/L', 0, 50],
-    ['Amônia', analise.amonia, 'mg/L', 0, 50],
-    ['Fósforo Total', analise.fosforoTotal, 'mg/L', 0, 10],
-    ['Cádmio', analise.cadmioTotal, 'mg/L', 0, 5],
-    ['Chumbo', analise.chumboTotal, 'mg/L', 0, 5],
-    ['Cobre', analise.cobreTotal, 'mg/L', 0, 5],
-    ['Cromo', analise.cromo, 'mg/L', 0, 5],
-    ['Ferro', analise.ferroTotal, 'mg/L', 0, 20],
-    ['Manganês', analise.manganesTotal, 'mg/L', 0, 20],
-    ['Níquel', analise.niquel, 'mg/L', 0, 5],
-    ['Zinco', analise.zinco, 'mg/L', 0, 20],
-    ['Coliformes', analise.coliformesTermotolerantes, 'NMP', 0, 1000],
-    ['Salinidade', analise.salinidade, '', 0, 50],
-    ['Cor Verdadeira', analise.corVerdadeira, 'uH', 0, 500],
-    ['Turbidez', analise.turbidez, 'uT', 0, 500],
-    ['Nitrato', analise.nitrato, 'mg/L', 0, 50],
-    ['Nitrito', analise.nitrito, 'mg/L', 0, 50],
-    ['Daphnia', analise.daphnia, '', 0, 100],
-    ['Sólidos Totais', analise.solidosTotais, 'mg/L', 0, 5000],
-    ['Clorofila', analise.clorofila, 'µg/L', 0, 500],
-    ['Potássio', analise.potassio, 'mg/L', 0, 100],
-    ['Alcalinidade', analise.alcalinidade, 'mg/L', 0, 500],
-    ['Sulfato', analise.sulfato, 'mg/L', 0, 500],
-    ['Sólidos Suspensos', analise.solidosSuspensos, 'mg/L', 0, 1000],
-    ['Sólidos Dissolvidos', analise.solidosDissolvidos, 'mg/L', 0, 5000],
-    ['Fósforo Solúvel', analise.fosforoSoluvel, 'mg/L', 0, 10],
-    ['OD Saturação', analise.odSaturacao, '%', 0, 200],
-    ['DQO', analise.dqo, 'mg/L', 0, 500],
-    ['Fitoplâncton', analise.fitoplanctonTotal, '', 0, 100000],
-    ['Cianobactérias', analise.densidadeCianobacterias, '', 0, 100000],
-    ['CYANOPHYTA', analise.cyanophyta, '', 0, 100000],
-    ['CHLOROPHYTA', analise.chlorophyta, '', 0, 100000],
-    ['CRYPTOPHYTA', analise.cryptophyta, '', 0, 100000],
-    ['EUGLENOPHYTA', analise.euglenophyta, '', 0, 100000],
-    ['DINOPHYTA', analise.dinophyta, '', 0, 100000],
-    ['FITOFLAGELADO', analise.fitoflagelado, '', 0, 100000],
-    ['CHAROPHYTA', analise.charophyta, '', 0, 100000],
-    ['Nitrogênio Total', analise.nitrogenioTotal, 'mg/L', 0, 50],
-    ['Valor Extra 1', analise.valorExtra1, '', 0, 100000],
-    ['Valor Extra 2', analise.valorExtra2, '', 0, 100000]
-
-
-
-
-  ]
+      ['ICF', 'icf', 'texto'],
+      ['Choveu nas Últimas 24h ?', 'choveuUltimas24h', 'texto'],
+      ['Temperatura do Ar', 'temperaturaAr', '°C'],
+      ['Temperatura da Água', 'temperaturaAgua', '°C'],
+      ['pH', 'ph', 'pH'],
+      ['Condutividade', 'condutividade', 'µS/cm'],
+      ['Cloreto', 'cloreto', 'mg/L'],
+      ['Oxigênio Dissolvido', 'oxigenioDissolvido', 'mg/L'],
+      ['DBO', 'dbo', 'mg/L'],
+      ['Amônia', 'amonia', 'mg/L'],
+      ['Fósforo Total', 'fosforoTotal', 'mg/L'],
+      ['Cádmio', 'cadmioTotal', 'mg/L'],
+      ['Chumbo', 'chumboTotal', 'mg/L'],
+      ['Cobre', 'cobreTotal', 'mg/L'],
+      ['Cromo', 'cromo', 'mg/L'],
+      ['Ferro', 'ferroTotal', 'mg/L'],
+      ['Manganês', 'manganesTotal', 'mg/L'],
+      ['Níquel', 'niquel', 'mg/L'],
+      ['Zinco', 'zinco', 'mg/L'],
+      ['Coliformes', 'coliformesTermotolerantes', 'NMP'],
+      ['Salinidade', 'salinidade', ''],
+      ['Cor Verdadeira', 'corVerdadeira', 'uH'],
+      ['Turbidez', 'turbidez', 'uT'],
+      ['Nitrato', 'nitrato', 'mg/L'],
+      ['Nitrito', 'nitrito', 'mg/L'],
+      ['Daphnia', 'daphnia', ''],
+      ['Sólidos Totais', 'solidosTotais', 'mg/L'],
+      ['Clorofila', 'clorofila', 'µg/L'],
+      ['Potássio', 'potassio', 'mg/L'],
+      ['Alcalinidade', 'alcalinidade', 'mg/L'],
+      ['Sulfato', 'sulfato', 'mg/L'],
+      ['Sólidos Suspensos', 'solidosSuspensos', 'mg/L'],
+      ['Sólidos Dissolvidos', 'solidosDissolvidos', 'mg/L'],
+      ['Fósforo Solúvel', 'fosforoSoluvel', 'mg/L'],
+      ['OD Saturação', 'odSaturacao', '%'],
+      ['DQO', 'dqo', 'mg/L'],
+      ['Fitoplâncton', 'fitoplanctonTotal', ''],
+      ['Cianobactérias', 'densidadeCianobacterias', ''],
+      ['CYANOPHYTA', 'cyanophyta', ''],
+      ['CHLOROPHYTA', 'chlorophyta', ''],
+      ['CRYPTOPHYTA', 'cryptophyta', ''],
+      ['EUGLENOPHYTA', 'euglenophyta', ''],
+      ['DINOPHYTA', 'dinophyta', ''],
+      ['FITOFLAGELADO', 'fitoflagelado', ''],
+      ['CHAROPHYTA', 'charophyta', ''],
+      ['Nitrogênio Total', 'nitrogenioTotal', 'mg/L'],
+      ['Valor Extra 1', 'valorExtra1', ''],
+      ['Valor Extra 2', 'valorExtra2', '']
+  ];
 
   return (
     <div className={styles.dashboard}>
@@ -200,17 +228,15 @@ function Dashboard({ onFechar }) {
               ? (
                 <InfoCard
                   titulo={item[0]}
-                  valor={item[1]}
+                  valor={analise[item[1]]}
                 />
               )
               : (
-                <Gauge
-                  titulo={item[0]}
-                  valor={item[1]}
-                  unidade={item[2]}
-                  min={item[3]}
-                  max={item[4]}
-                  cor="#1d93d8"
+                <ColumnChart
+                    titulo={item[0]}
+                    unidade={item[2]}
+                    campo={item[1]}
+                    dados={analises}
                 />
               )
             }
